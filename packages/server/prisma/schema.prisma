@@ -1,0 +1,62 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  boards    Board[]  @relation("BoardOwner")
+  memberships BoardMember[]
+  assignedCards Card[] @relation("CardAssignee")
+}
+
+model Board {
+  id      String   @id @default(uuid())
+  title   String
+  ownerId String
+  owner   User     @relation("BoardOwner", fields: [ownerId], references: [id])
+  members BoardMember[]
+  lists   List[]
+}
+
+model BoardMember {
+  boardId String
+  userId  String
+  role    String   @default("MEMBER") // OWNER, MEMBER
+  board   Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([boardId, userId])
+}
+
+model List {
+  id      String   @id @default(uuid())
+  title   String
+  order   Int
+  boardId String
+  board   Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  cards   Card[]
+}
+
+model Card {
+  id          String  @id @default(uuid())
+  title       String
+  description String?
+  order       Int
+  listId      String
+  list        List    @relation(fields: [listId], references: [id], onDelete: Cascade)
+  assigneeId  String?
+  assignee    User?   @relation("CardAssignee", fields: [assigneeId], references: [id])
+}
