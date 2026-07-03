@@ -1,6 +1,8 @@
 version: '3.8'
+
 services:
   server:
+    image: ghcr.io/yipengisbetter/team-kanban-server:latest
     build:
       context: .
       dockerfile: packages/server/Dockerfile
@@ -10,13 +12,21 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       JWT_SECRET: ${JWT_SECRET}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
   client:
+    image: ghcr.io/yipengisbetter/team-kanban-client:latest
     build:
       context: .
       dockerfile: packages/client/Dockerfile
     ports:
       - "80:80"
+    depends_on:
+      - server
+    restart: unless-stopped
+
   db:
     image: postgres:15-alpine
     environment:
@@ -25,5 +35,11 @@ services:
       POSTGRES_DB: kanban
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kanban"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
 volumes:
   pgdata:
